@@ -20,7 +20,7 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
+	"google.golang.org/grpc/credentials/insecure"
 	"io/ioutil"
 	"net/url"
 	"os"
@@ -42,16 +42,9 @@ import (
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
 	"github.com/networkservicemesh/sdk/pkg/tools/log/logruslogger"
 	monitorauthorize "github.com/networkservicemesh/sdk/pkg/tools/monitorconnection/authorize"
-	"github.com/networkservicemesh/sdk/pkg/tools/spiffejwt"
-	"github.com/networkservicemesh/sdk/pkg/tools/spire"
-	"github.com/networkservicemesh/sdk/pkg/tools/token"
 	"github.com/networkservicemesh/sdk/pkg/tools/tracing"
 	"github.com/sirupsen/logrus"
-	"github.com/spiffe/go-spiffe/v2/spiffetls/tlsconfig"
-	"github.com/spiffe/go-spiffe/v2/svid/x509svid"
-	"github.com/spiffe/go-spiffe/v2/workloadapi"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 )
 
 // Config - configuration for cmd-forwarder-kernel
@@ -115,27 +108,13 @@ func main() {
 	// ********************************************************************************
 	now = time.Now()
 
-	source, err := workloadapi.NewX509Source(ctx)
-	if err != nil {
-		logrus.Fatalf("error getting x509 source: %+v", err)
-	}
-	svid, err := source.GetX509SVID()
-	if err != nil {
-		logrus.Fatalf("error getting x509 svid: %+v", err)
-	}
-	logrus.Infof("SVID: %q", svid.ID)
-
 	log.FromContext(ctx).WithField("duration", time.Since(now)).Info("completed phase 2: retrieving svid")
 
 	// ********************************************************************************
 	log.FromContext(ctx).Infof("executing phase 3: create xconnect network service endpoint (time since start: %s)", time.Since(starttime))
 	// ********************************************************************************
-	tlsClientConfig := tlsconfig.MTLSClientConfig(source, source, tlsconfig.AuthorizeAny())
-	tlsClientConfig.MinVersion = tls.VersionTLS12
-	tlsServerConfig := tlsconfig.MTLSServerConfig(source, source, tlsconfig.AuthorizeAny())
-	tlsServerConfig.MinVersion = tls.VersionTLS12
 
-	xConnectEndpoint, err := createKernelForwarderEndpoint(ctx, config, tlsClientConfig, source)
+	xConnectEndpoint, err := createKernelForwarderEndpoint(ctx, config)
 	if err != nil {
 		logrus.Fatalf("error configuring forwarder endpoint: %+v", err)
 	}
@@ -154,7 +133,7 @@ func main() {
 	server := grpc.NewServer(append(
 		tracing.WithTracing(),
 		grpc.Creds(
-			grpcfd.TransportCredentials(credentials.NewTLS(tlsServerConfig)),
+			grpcfd.TransportCredentials(insecure.NewCredentials()),
 		),
 	)...)
 	xConnectEndpoint.Register(server)
@@ -165,7 +144,7 @@ func main() {
 	// ********************************************************************************
 	log.FromContext(ctx).Infof("executing phase 5: register %s with the registry (time since start: %s)", config.NSName, time.Since(starttime))
 	// ********************************************************************************
-	err = registerEndpoint(ctx, config, tlsClientConfig, listenOn)
+	err = registerEndpoint(ctx, config, listenOn)
 	if err != nil {
 		log.FromContext(ctx).Fatalf("failed to connect to registry: %+v", err)
 	}
@@ -178,36 +157,31 @@ func main() {
 
 }
 
-func createKernelForwarderEndpoint(ctx context.Context, config *Config, tlsClientConfig *tls.Config, source x509svid.Source) (xConnectEndpoint endpoint.Endpoint, err error) {
-	var spiffeidmap spire.SpiffeIDConnectionMap
+func createKernelForwarderEndpoint(ctx context.Context, config *Config) (xConnectEndpoint endpoint.Endpoint, err error) {
 	return forwarder.NewServer(
 		ctx,
 		config.Name,
-		authorize.NewServer(authorize.WithSpiffeIDConnectionMap(&spiffeidmap)),
-		monitorauthorize.NewMonitorConnectionServer(monitorauthorize.WithSpiffeIDConnectionMap(&spiffeidmap)),
-		spiffejwt.TokenGeneratorFunc(source, config.MaxTokenLifetime),
+		authorize.NewServer(authorize.Any()),
+		monitorauthorize.NewMonitorConnectionServer(monitorauthorize.Any()),
 		&config.ConnectTo,
 		config.TunnelIP,
 		config.DialTimeout,
 		grpc.WithBlock(),
 		grpc.WithTransportCredentials(
-			grpcfd.TransportCredentials(credentials.NewTLS(tlsClientConfig))),
-		grpc.WithDefaultCallOptions(
-			grpc.PerRPCCredentials(token.NewPerRPCCredentials(spiffejwt.TokenGeneratorFunc(source, config.MaxTokenLifetime))),
-		),
+			grpcfd.TransportCredentials(insecure.NewCredentials())),
 		grpcfd.WithChainStreamInterceptor(),
 		grpcfd.WithChainUnaryInterceptor(),
 	)
 }
 
-func registerEndpoint(ctx context.Context, cfg *Config, tlsClientConfig *tls.Config, listenOn *url.URL) error {
+func registerEndpoint(ctx context.Context, cfg *Config, listenOn *url.URL) error {
 	clientOptions := append(
 		tracing.WithTracingDial(),
 		grpc.WithBlock(),
 		grpc.WithDefaultCallOptions(grpc.WaitForReady(true)),
 		grpc.WithTransportCredentials(
 			grpcfd.TransportCredentials(
-				credentials.NewTLS(tlsClientConfig),
+				insecure.NewCredentials(),
 			),
 		),
 	)

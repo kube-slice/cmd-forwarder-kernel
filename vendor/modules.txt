@@ -45,9 +45,6 @@ github.com/gobwas/glob/syntax/ast
 github.com/gobwas/glob/syntax/lexer
 github.com/gobwas/glob/util/runes
 github.com/gobwas/glob/util/strings
-# github.com/golang-jwt/jwt/v4 v4.2.0
-## explicit; go 1.15
-github.com/golang-jwt/jwt/v4
 # github.com/golang/protobuf v1.5.3
 ## explicit; go 1.9
 github.com/golang/protobuf/jsonpb
@@ -88,7 +85,7 @@ github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/kernel
 github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/vxlan
 github.com/networkservicemesh/api/pkg/api/networkservice/payload
 github.com/networkservicemesh/api/pkg/api/registry
-# github.com/networkservicemesh/sdk v1.6.1 => github.com/kubeslice/nsm-sdk v1.6.2-kbs
+# github.com/networkservicemesh/sdk v1.6.1 => github.com/kube-slice/nsm-sdk v1.6.2-kbs-vl3.0.20250926050737-a7ae382978a6
 ## explicit; go 1.18
 github.com/networkservicemesh/sdk/pkg/networkservice/chains/client
 github.com/networkservicemesh/sdk/pkg/networkservice/chains/endpoint
@@ -110,7 +107,6 @@ github.com/networkservicemesh/sdk/pkg/networkservice/common/roundrobin
 github.com/networkservicemesh/sdk/pkg/networkservice/common/timeout
 github.com/networkservicemesh/sdk/pkg/networkservice/common/trimpath
 github.com/networkservicemesh/sdk/pkg/networkservice/common/updatepath
-github.com/networkservicemesh/sdk/pkg/networkservice/common/updatetoken
 github.com/networkservicemesh/sdk/pkg/networkservice/core/chain
 github.com/networkservicemesh/sdk/pkg/networkservice/core/next
 github.com/networkservicemesh/sdk/pkg/networkservice/core/trace
@@ -145,10 +141,8 @@ github.com/networkservicemesh/sdk/pkg/tools/monitorconnection/streamcontext
 github.com/networkservicemesh/sdk/pkg/tools/opa
 github.com/networkservicemesh/sdk/pkg/tools/opentelemetry
 github.com/networkservicemesh/sdk/pkg/tools/postpone
-github.com/networkservicemesh/sdk/pkg/tools/spiffejwt
 github.com/networkservicemesh/sdk/pkg/tools/spire
 github.com/networkservicemesh/sdk/pkg/tools/stringset
-github.com/networkservicemesh/sdk/pkg/tools/token
 github.com/networkservicemesh/sdk/pkg/tools/tracing
 github.com/networkservicemesh/sdk/pkg/tools/typeutils
 # github.com/networkservicemesh/sdk-kernel v1.6.1
@@ -260,7 +254,6 @@ github.com/spiffe/go-spiffe/v2/internal/x509util
 github.com/spiffe/go-spiffe/v2/logger
 github.com/spiffe/go-spiffe/v2/proto/spiffe/workload
 github.com/spiffe/go-spiffe/v2/spiffeid
-github.com/spiffe/go-spiffe/v2/spiffetls/tlsconfig
 github.com/spiffe/go-spiffe/v2/svid/jwtsvid
 github.com/spiffe/go-spiffe/v2/svid/x509svid
 github.com/spiffe/go-spiffe/v2/workloadapi

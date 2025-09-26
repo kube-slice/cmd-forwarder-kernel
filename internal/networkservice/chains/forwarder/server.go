@@ -22,7 +22,6 @@ import (
 	"github.com/networkservicemesh/sdk/pkg/networkservice/utils/metadata"
 	registryclient "github.com/networkservicemesh/sdk/pkg/registry/chains/client"
 	registryrecvfd "github.com/networkservicemesh/sdk/pkg/registry/common/recvfd"
-	"github.com/networkservicemesh/sdk/pkg/tools/token"
 
 	"github.com/networkservicemesh/sdk-kernel/pkg/kernel/networkservice/connectioncontextkernel"
 
@@ -41,8 +40,7 @@ type kernelXconnectNSServer struct {
 }
 
 func newEndpoint(ctx context.Context, name string,
-	authzServer networkservice.NetworkServiceServer, authzMonitorServer networkservice.MonitorConnectionServer,
-	tokenGenerator token.GeneratorFunc, clientURL *url.URL, tunnelIpStr string, dialTimeout time.Duration,
+	authzServer networkservice.NetworkServiceServer, authzMonitorServer networkservice.MonitorConnectionServer, clientURL *url.URL, tunnelIpStr string, dialTimeout time.Duration,
 	clientDialOptions ...grpc.DialOption) (endpoint.Endpoint, error) {
 	nseClient := registryclient.NewNetworkServiceEndpointRegistryClient(ctx,
 		registryclient.WithClientURL(clientURL),
@@ -91,7 +89,7 @@ func newEndpoint(ctx context.Context, name string,
 		),
 	}
 
-	rv.Endpoint = endpoint.NewServer(ctx, tokenGenerator,
+	rv.Endpoint = endpoint.NewServer(ctx,
 		endpoint.WithName(name),
 		endpoint.WithAuthorizeServer(authzServer),
 		endpoint.WithAuthorizeMonitorConnectionServer(authzMonitorServer),
@@ -115,7 +113,7 @@ func parseTunnelIPCIDR(tunnelIPStr string) (net.IP, error) {
 }
 
 func NewServer(ctx context.Context, name string, authzServer networkservice.NetworkServiceServer,
-	authzMonitorServer networkservice.MonitorConnectionServer, tokenGenerator token.GeneratorFunc,
+	authzMonitorServer networkservice.MonitorConnectionServer,
 	clientURL *url.URL, tunnelIpStr string, dialTimeout time.Duration, clientDialOptions ...grpc.DialOption) (endpoint.Endpoint, error) {
-	return newEndpoint(ctx, name, authzServer, authzMonitorServer, tokenGenerator, clientURL, tunnelIpStr, dialTimeout, clientDialOptions...)
+	return newEndpoint(ctx, name, authzServer, authzMonitorServer, clientURL, tunnelIpStr, dialTimeout, clientDialOptions...)
 }
