@@ -21,6 +21,8 @@ package endpoint
 
 import (
 	"context"
+	authmonitor "github.com/networkservicemesh/sdk/pkg/tools/monitorconnection/authorize"
+	"github.com/networkservicemesh/sdk/pkg/tools/monitorconnection/next"
 	"net/url"
 
 	"google.golang.org/grpc"
@@ -34,14 +36,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/networkservicemesh/api/pkg/api/networkservice"
 
-	"github.com/networkservicemesh/sdk/pkg/networkservice/common/authorize"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/monitor"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/timeout"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/updatepath"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/core/chain"
 	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
-	authmonitor "github.com/networkservicemesh/sdk/pkg/tools/monitorconnection/authorize"
-	"github.com/networkservicemesh/sdk/pkg/tools/monitorconnection/next"
 )
 
 // Endpoint - aggregates the APIs:
@@ -107,7 +106,6 @@ func WithAdditionalFunctionality(additionalFunctionality ...networkservice.Netwo
 func NewServer(ctx context.Context, options ...Option) Endpoint {
 	opts := &serverOptions{
 		name:                             "endpoint-" + uuid.New().String(),
-		authorizeServer:                  authorize.NewServer(authorize.Any()),
 		authorizeMonitorConnectionServer: authmonitor.NewMonitorConnectionServer(authmonitor.Any()),
 	}
 	for _, opt := range options {
@@ -120,7 +118,6 @@ func NewServer(ctx context.Context, options ...Option) Endpoint {
 		append([]networkservice.NetworkServiceServer{
 			updatepath.NewServer(opts.name),
 			begin.NewServer(),
-			opts.authorizeServer,
 			metadata.NewServer(),
 			timeout.NewServer(ctx),
 			monitor.NewServer(ctx, &mcsPtr),

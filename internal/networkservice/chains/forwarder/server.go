@@ -39,8 +39,7 @@ type kernelXconnectNSServer struct {
 	endpoint.Endpoint
 }
 
-func newEndpoint(ctx context.Context, name string,
-	authzServer networkservice.NetworkServiceServer, authzMonitorServer networkservice.MonitorConnectionServer, clientURL *url.URL, tunnelIpStr string, dialTimeout time.Duration,
+func newEndpoint(ctx context.Context, name string, clientURL *url.URL, tunnelIpStr string, dialTimeout time.Duration,
 	clientDialOptions ...grpc.DialOption) (endpoint.Endpoint, error) {
 	nseClient := registryclient.NewNetworkServiceEndpointRegistryClient(ctx,
 		registryclient.WithClientURL(clientURL),
@@ -91,8 +90,6 @@ func newEndpoint(ctx context.Context, name string,
 
 	rv.Endpoint = endpoint.NewServer(ctx,
 		endpoint.WithName(name),
-		endpoint.WithAuthorizeServer(authzServer),
-		endpoint.WithAuthorizeMonitorConnectionServer(authzMonitorServer),
 		endpoint.WithAdditionalFunctionality(additionalFunctionality...))
 
 	return rv, nil
@@ -112,8 +109,7 @@ func parseTunnelIPCIDR(tunnelIPStr string) (net.IP, error) {
 	return egressTunnelIP, err
 }
 
-func NewServer(ctx context.Context, name string, authzServer networkservice.NetworkServiceServer,
-	authzMonitorServer networkservice.MonitorConnectionServer,
+func NewServer(ctx context.Context, name string,
 	clientURL *url.URL, tunnelIpStr string, dialTimeout time.Duration, clientDialOptions ...grpc.DialOption) (endpoint.Endpoint, error) {
-	return newEndpoint(ctx, name, authzServer, authzMonitorServer, clientURL, tunnelIpStr, dialTimeout, clientDialOptions...)
+	return newEndpoint(ctx, name, clientURL, tunnelIpStr, dialTimeout, clientDialOptions...)
 }

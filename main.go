@@ -35,13 +35,11 @@ import (
 	"github.com/kubeslice/cmd-forwarder-kernel/internal/networkservice/chains/forwarder"
 	registryapi "github.com/networkservicemesh/api/pkg/api/registry"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/chains/endpoint"
-	"github.com/networkservicemesh/sdk/pkg/networkservice/common/authorize"
 	registryclient "github.com/networkservicemesh/sdk/pkg/registry/chains/client"
 	"github.com/networkservicemesh/sdk/pkg/registry/common/sendfd"
 	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
 	"github.com/networkservicemesh/sdk/pkg/tools/log/logruslogger"
-	monitorauthorize "github.com/networkservicemesh/sdk/pkg/tools/monitorconnection/authorize"
 	"github.com/networkservicemesh/sdk/pkg/tools/tracing"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -161,8 +159,6 @@ func createKernelForwarderEndpoint(ctx context.Context, config *Config) (xConnec
 	return forwarder.NewServer(
 		ctx,
 		config.Name,
-		authorize.NewServer(authorize.Any()),
-		monitorauthorize.NewMonitorConnectionServer(monitorauthorize.Any()),
 		&config.ConnectTo,
 		config.TunnelIP,
 		config.DialTimeout,
