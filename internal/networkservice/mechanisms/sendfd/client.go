@@ -20,6 +20,7 @@ package sendfd
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/networkservicemesh/api/pkg/api/networkservice"
@@ -56,7 +57,13 @@ func (s *sendFDClient) Request(ctx context.Context, request *networkservice.Netw
 	// Translate the InodeURl mechanism *back to a proper file://${path} url
 	if fileURLStr, ok := inodeURLToFileURLMap[conn.GetMechanism().GetParameters()[common.InodeURL]]; ok {
 		conn.GetMechanism().GetParameters()[common.InodeURL] = fileURLStr
+		fmt.Println("###########################################")
+		fmt.Printf("file url: %s\n", fileURLStr)
+		fmt.Println("###########################################")
 	}
+	fmt.Println("********************************")
+	fmt.Println("returned connection")
+	fmt.Println("********************************")
 	return conn, nil
 }
 

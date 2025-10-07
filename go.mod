@@ -18,7 +18,7 @@ require (
 	google.golang.org/grpc v1.59.0
 )
 
-replace github.com/networkservicemesh/sdk v1.6.1 => github.com/kube-slice/nsm-sdk v1.6.2-kbs.0.20251001050456-f281b2f8b389
+replace github.com/networkservicemesh/sdk v1.6.1 => github.com/kube-slice/nsm-sdk v1.6.2-kbs.0.20251007070414-ef83ccf93df0
 
 require (
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect

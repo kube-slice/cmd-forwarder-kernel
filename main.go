@@ -20,6 +20,7 @@ package main
 
 import (
 	"context"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	"io/ioutil"
 	"net/url"
@@ -127,11 +128,11 @@ func main() {
 	}
 	defer func() { _ = os.RemoveAll(tmpDir) }()
 	listenOn := &url.URL{Scheme: "unix", Path: path.Join(tmpDir, "listen_on.io.sock")}
-
+	var creds credentials.TransportCredentials
 	server := grpc.NewServer(append(
 		tracing.WithTracing(),
 		grpc.Creds(
-			grpcfd.TransportCredentials(insecure.NewCredentials()),
+			grpcfd.TransportCredentials(creds),
 		),
 	)...)
 	xConnectEndpoint.Register(server)
@@ -180,6 +181,8 @@ func registerEndpoint(ctx context.Context, cfg *Config, listenOn *url.URL) error
 				insecure.NewCredentials(),
 			),
 		),
+		grpcfd.WithChainStreamInterceptor(),
+		grpcfd.WithChainUnaryInterceptor(),
 	)
 
 	registryClient := registryclient.NewNetworkServiceEndpointRegistryClient(ctx, registryclient.WithClientURL(&cfg.ConnectTo),

@@ -19,6 +19,7 @@
 package sendfd
 
 import (
+	"fmt"
 	"net/url"
 
 	"github.com/kubeslice/cmd-forwarder-kernel/internal/tools/fs"
@@ -27,6 +28,8 @@ import (
 )
 
 func swapFileToInode(parameters, inodeURLToFileURLMap map[string]string) error {
+	fmt.Println("Came here")
+	fmt.Println("*******************************************************************")
 	// Does it have parameters?
 	if parameters == nil {
 		return nil
