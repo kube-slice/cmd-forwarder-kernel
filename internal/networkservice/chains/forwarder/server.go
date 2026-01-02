@@ -22,7 +22,6 @@ import (
 	"github.com/networkservicemesh/sdk/pkg/networkservice/utils/metadata"
 	registryclient "github.com/networkservicemesh/sdk/pkg/registry/chains/client"
 	registryrecvfd "github.com/networkservicemesh/sdk/pkg/registry/common/recvfd"
-	"github.com/networkservicemesh/sdk/pkg/tools/token"
 
 	"github.com/networkservicemesh/sdk-kernel/pkg/kernel/networkservice/connectioncontextkernel"
 
@@ -40,9 +39,7 @@ type kernelXconnectNSServer struct {
 	endpoint.Endpoint
 }
 
-func newEndpoint(ctx context.Context, name string,
-	authzServer networkservice.NetworkServiceServer, authzMonitorServer networkservice.MonitorConnectionServer,
-	tokenGenerator token.GeneratorFunc, clientURL *url.URL, tunnelIpStr string, dialTimeout time.Duration,
+func newEndpoint(ctx context.Context, name string, clientURL *url.URL, tunnelIpStr string, dialTimeout time.Duration,
 	clientDialOptions ...grpc.DialOption) (endpoint.Endpoint, error) {
 	nseClient := registryclient.NewNetworkServiceEndpointRegistryClient(ctx,
 		registryclient.WithClientURL(clientURL),
@@ -91,10 +88,8 @@ func newEndpoint(ctx context.Context, name string,
 		),
 	}
 
-	rv.Endpoint = endpoint.NewServer(ctx, tokenGenerator,
+	rv.Endpoint = endpoint.NewServer(ctx,
 		endpoint.WithName(name),
-		endpoint.WithAuthorizeServer(authzServer),
-		endpoint.WithAuthorizeMonitorConnectionServer(authzMonitorServer),
 		endpoint.WithAdditionalFunctionality(additionalFunctionality...))
 
 	return rv, nil
@@ -114,8 +109,7 @@ func parseTunnelIPCIDR(tunnelIPStr string) (net.IP, error) {
 	return egressTunnelIP, err
 }
 
-func NewServer(ctx context.Context, name string, authzServer networkservice.NetworkServiceServer,
-	authzMonitorServer networkservice.MonitorConnectionServer, tokenGenerator token.GeneratorFunc,
+func NewServer(ctx context.Context, name string,
 	clientURL *url.URL, tunnelIpStr string, dialTimeout time.Duration, clientDialOptions ...grpc.DialOption) (endpoint.Endpoint, error) {
-	return newEndpoint(ctx, name, authzServer, authzMonitorServer, tokenGenerator, clientURL, tunnelIpStr, dialTimeout, clientDialOptions...)
+	return newEndpoint(ctx, name, clientURL, tunnelIpStr, dialTimeout, clientDialOptions...)
 }
