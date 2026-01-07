@@ -15,7 +15,11 @@ COPY . .
 RUN go env -w GOPRIVATE=github.com/kubeslice && \
     CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} GO111MODULE=on go build -mod=vendor -a -o /bin/kernel-forwarder .
 
-FROM alpine as runtime
+FROM registry.access.redhat.com/ubi10/ubi-minimal as runtime
+
+RUN mkdir -p /licenses
+COPY LICENSE /licenses/
+
 COPY --from=build /bin/kernel-forwarder /bin/kernel-forwarder
 
 ENTRYPOINT ["/bin/kernel-forwarder"]
