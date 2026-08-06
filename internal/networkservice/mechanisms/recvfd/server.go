@@ -56,6 +56,13 @@ func (r *recvFDServer) Request(ctx context.Context, request *networkservice.Netw
 	// Call the next server in the chain
 	conn, err := next.Server(ctx).Request(ctx, request)
 	if err != nil {
+		// A request that failed will never be closed, and Close is the only
+		// thing that removes this connection's entry. Leaving it behind leaks
+		// one entry per failed attempt, so the footprint tracks how often
+		// requests fail rather than how many clients there are -- which is why
+		// a node whose attaches are failing grows until it is OOMKilled, taking
+		// out the very component every pod needs to get an interface.
+		r.fileMaps.Delete(request.GetConnection().GetId())
 		return nil, err
 	}
 
