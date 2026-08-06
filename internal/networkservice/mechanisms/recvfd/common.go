@@ -67,6 +67,14 @@ func recvFDAndSwapInodeToFile(ctx context.Context, fileMap *perConnectionFileMap
 		var err error
 		file, err = fs.GetNetnsFilePath(inodeURLStr)
 		if err != nil {
+			// Drop what we knew about this namespace. The path we were holding
+			// has already been shown not to exist, and re-resolving just failed,
+			// so the entry is a dead reference: kept, it is re-stat'ed on every
+			// subsequent attempt and never reclaimed, which is the same
+			// accumulation the per-connection map already suffers from on
+			// failed requests.
+			delete(fileMap.filesByInodeURL, inodeURLStr)
+			delete(fileMap.inodeURLbyFilename, file)
 			return err
 		}
 		fileMap.filesByInodeURL[inodeURL.String()] = file
