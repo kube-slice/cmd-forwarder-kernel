@@ -64,6 +64,14 @@ func recvFDAndSwapInodeToFile(ctx context.Context, fileMap *perConnectionFileMap
 		}
 	}
 	if !ok || fileNotPresentOnSystem {
+		// Kept before the resolution below overwrites it. GetNetnsFilePath
+		// returns "" alongside its error, so reading `file` afterwards to find
+		// the reverse entry deletes the key "" and leaves the stale path in
+		// place -- and the stale path is the entry that can do harm, because
+		// swapFileToInode is keyed by path and /proc/<pid>/ns/net paths come
+		// back when pids are recycled.
+		stalePath := file
+
 		var err error
 		file, err = fs.GetNetnsFilePath(inodeURLStr)
 		if err != nil {
@@ -74,7 +82,7 @@ func recvFDAndSwapInodeToFile(ctx context.Context, fileMap *perConnectionFileMap
 			// accumulation the per-connection map already suffers from on
 			// failed requests.
 			delete(fileMap.filesByInodeURL, inodeURLStr)
-			delete(fileMap.inodeURLbyFilename, file)
+			delete(fileMap.inodeURLbyFilename, stalePath)
 			return err
 		}
 		fileMap.filesByInodeURL[inodeURL.String()] = file

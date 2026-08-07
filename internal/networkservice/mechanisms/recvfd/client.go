@@ -55,6 +55,10 @@ func (r *recvFDClient) Request(ctx context.Context, request *networkservice.Netw
 	// Recv the FD and swap theInode to File in the Parameters for the returned connection mechanism
 	err = recvFDAndSwapInodeToFile(ctx, fileMap, conn.GetMechanism().GetParameters())
 	if err != nil {
+		// Nothing will close a connection this element never returned, and
+		// Close is the only other thing that removes the entry, so it would
+		// stay for the life of the process. Same leak as the server side.
+		r.fileMaps.Delete(conn.GetId())
 		return nil, err
 	}
 

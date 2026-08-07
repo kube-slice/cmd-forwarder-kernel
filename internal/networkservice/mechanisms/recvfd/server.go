@@ -38,37 +38,47 @@ func NewServer() networkservice.NetworkServiceServer {
 	return &recvFDServer{}
 }
 
-func (r *recvFDServer) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
+func (r *recvFDServer) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (conn *networkservice.Connection, err error) {
+	id := request.GetConnection().GetId()
+
 	// Get the fileMap
-	fileMap, _ := r.fileMaps.LoadOrStore(request.GetConnection().GetId(), &perConnectionFileMap{
+	fileMap, _ := r.fileMaps.LoadOrStore(id, &perConnectionFileMap{
 		filesByInodeURL:    make(map[string]string),
 		inodeURLbyFilename: make(map[string]*url.URL),
 	})
 
+	// A request that failed will never be closed, and Close is the only thing
+	// that removes this connection's entry. Leaving it behind leaks one entry
+	// per failed attempt, so the footprint tracks how often requests fail
+	// rather than how many clients there are -- which is why a node whose
+	// attaches are failing grows until it is OOMKilled, taking out the very
+	// component every pod needs to get an interface.
+	//
+	// It has to cover every way out and not just a failure from the next
+	// element. The namespace of a pod that is gone fails to resolve in the
+	// mechanism loop below, which is exactly the path a node walks while its
+	// attaches are failing -- the one that grows fastest, and the one the
+	// original delete did not reach.
+	defer func() {
+		if err != nil {
+			r.fileMaps.Delete(id)
+		}
+	}()
+
 	// For each mechanism recv the FD and Swap the Inode for a file in InodeURL in Parameters
 	for _, mechanism := range append(request.GetMechanismPreferences(), request.GetConnection().GetMechanism()) {
-		err := recvFDAndSwapInodeToFile(ctx, fileMap, mechanism.GetParameters())
-		if err != nil {
+		if err = recvFDAndSwapInodeToFile(ctx, fileMap, mechanism.GetParameters()); err != nil {
 			return nil, err
 		}
 	}
 
 	// Call the next server in the chain
-	conn, err := next.Server(ctx).Request(ctx, request)
-	if err != nil {
-		// A request that failed will never be closed, and Close is the only
-		// thing that removes this connection's entry. Leaving it behind leaks
-		// one entry per failed attempt, so the footprint tracks how often
-		// requests fail rather than how many clients there are -- which is why
-		// a node whose attaches are failing grows until it is OOMKilled, taking
-		// out the very component every pod needs to get an interface.
-		r.fileMaps.Delete(request.GetConnection().GetId())
+	if conn, err = next.Server(ctx).Request(ctx, request); err != nil {
 		return nil, err
 	}
 
 	// Swap back from File to Inode in the InodeURL in the Parameters
-	err = swapFileToInode(fileMap, conn.GetMechanism().GetParameters())
-	if err != nil {
+	if err = swapFileToInode(fileMap, conn.GetMechanism().GetParameters()); err != nil {
 		return nil, err
 	}
 

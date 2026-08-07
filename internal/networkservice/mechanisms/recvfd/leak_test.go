@@ -18,10 +18,12 @@ package recvfd
 
 import (
 	"context"
+	"net/url"
 	"testing"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/networkservicemesh/api/pkg/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/common"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/core/next"
 	"github.com/pkg/errors"
 )
@@ -65,3 +67,64 @@ func TestFailedRequestLeavesNoFileMapBehind(t *testing.T) {
 		t.Error("a failed request left its file map behind; this is the leak that OOMKills the forwarder")
 	}
 }
+
+// The namespace of a pod that has gone does not resolve, so the request fails
+// before it ever reaches the next element. That is the path a node walks while
+// its attaches are failing -- the fastest-growing one -- and deleting the entry
+// only when the next element returns an error never reached it.
+func TestRequestThatCannotResolveANamespaceLeavesNoFileMapBehind(t *testing.T) {
+	server := &recvFDServer{}
+
+	const id = "pg-dcdr-dc-a-0-0-4dcd0e4e-4e2e-4a1e-9b1e-8f0b2a5c1d33"
+	request := &networkservice.NetworkServiceRequest{
+		Connection: &networkservice.Connection{
+			Id: id,
+			// An inode no process on this machine owns: the pod is gone.
+			Mechanism: &networkservice.Mechanism{
+				Parameters: map[string]string{common.InodeURL: deadInodeURL},
+			},
+		},
+	}
+
+	ctx := next.NewNetworkServiceServer(server, failingServer{})
+	if _, err := ctx.Request(context.Background(), request); err == nil {
+		t.Fatal("precondition: resolving a dead namespace must fail")
+	}
+
+	if _, loaded := server.fileMaps.Load(id); loaded {
+		t.Error("a request that failed to resolve its namespace left its file map behind")
+	}
+}
+
+// A dead namespace has to be forgotten in both directions. swapFileToInode is
+// keyed by path, and /proc/<pid>/ns/net paths come back when pids are recycled,
+// so a reverse entry left pointing at the old inode would hand a live
+// connection a reference to a namespace that is not its own.
+func TestDeadNamespaceIsForgottenInBothDirections(t *testing.T) {
+	const stalePath = "/proc/424242/ns/net"
+
+	inodeURL, err := url.Parse(deadInodeURL)
+	if err != nil {
+		t.Fatalf("parsing %q: %v", deadInodeURL, err)
+	}
+	fileMap := &perConnectionFileMap{
+		filesByInodeURL:    map[string]string{deadInodeURL: stalePath},
+		inodeURLbyFilename: map[string]*url.URL{stalePath: inodeURL},
+	}
+
+	parameters := map[string]string{common.InodeURL: deadInodeURL}
+	if err := recvFDAndSwapInodeToFile(context.Background(), fileMap, parameters); err == nil {
+		t.Fatal("precondition: resolving a dead namespace must fail")
+	}
+
+	if len(fileMap.filesByInodeURL) != 0 {
+		t.Errorf("inode -> path still holds %v", fileMap.filesByInodeURL)
+	}
+	if len(fileMap.inodeURLbyFilename) != 0 {
+		t.Errorf("path -> inode still holds %v; a recycled pid would resolve to the wrong namespace", fileMap.inodeURLbyFilename)
+	}
+}
+
+// An inode number far above anything the kernel hands out, so no process on the
+// machine running these tests owns it.
+const deadInodeURL = "inode://4/999999999"
